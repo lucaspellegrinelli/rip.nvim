@@ -1,33 +1,3 @@
-function trimToWord(str, target, maxLen)
-    -- Check if string is longer than max length
-    if #str > maxLen then
-        -- Check if target string is in the string
-        local targetIndex = string.find(str, target)
-        if targetIndex then
-            -- Calculate how much to trim before and after the target string
-            local targetLen = #target
-            local trimLen = maxLen - targetLen - 1
-            local startTrim = math.max(targetIndex - trimLen, 1)
-            local endTrim = math.min(targetIndex + targetLen + trimLen - 1, #str)
-
-            -- Trim the string
-            str = string.sub(str, startTrim, endTrim)
-            -- Add ellipsis if necessary
-            if startTrim > 1 then
-                str = "..." .. string.sub(str, startTrim)
-            end
-            if endTrim < #str then
-                str = string.sub(str, 1, -4) .. "..."
-            end
-        else
-            -- Trim the string without keeping target visible
-            str = string.sub(str, 1, maxLen - 3) .. "..."
-        end
-    end
-
-    return str
-end
-
 local height = 15
 local width = 100
 
@@ -41,15 +11,15 @@ local fileListBuf = nil
 local fileListWin = nil
 
 function replaceInProject()
-    local searchString, replaceString = getUserInputs()
+    getUserInputs()
     local searchedFiles = vim.fn.system("find . -type f -exec grep -n -H -e '" .. searchString .. "' {} +")
-    replaceInProjectGeneric(searchString, replaceString, searchedFiles)
+    replaceInProjectGeneric(searchedFiles)
 end
 
 function replaceInGit()
-    local searchString, replaceString = getUserInputs()
+    getUserInputs()
     local searchedFiles = vim.fn.system("git ls-files | xargs grep -n -H -e '" .. searchString .. "'")
-    replaceInProjectGeneric(searchString, replaceString, searchedFiles)
+    replaceInProjectGeneric(searchedFiles)
 end
 
 function getUserInputs()
@@ -64,11 +34,9 @@ function getUserInputs()
     if replaceString == "" then
         return
     end
-
-    return searchString, replaceString
 end
 
-function replaceInProjectGeneric(searchString, replaceString, filesSearched)
+function replaceInProjectGeneric(filesSearched)
     selectedOptions = {}
     optionPerLine = {}
 
@@ -186,9 +154,6 @@ function toggleMark()
 end
 
 function submitChanges()
-    -- print(vim.inspect(selectedOptions))
-    -- print(vim.inspect(optionPerLine))
-
     -- Close the window
     vim.api.nvim_win_close(fileListWin, true)
 
@@ -212,4 +177,34 @@ function submitChanges()
     vim.cmd("edit!")
 end
 
--- rummy
+function trimToWord(str, target, maxLen)
+    -- Check if string is longer than max length
+    if #str > maxLen then
+        -- Check if target string is in the string
+        local targetIndex = string.find(str, target)
+        if targetIndex then
+            -- Calculate how much to trim before and after the target string
+            local targetLen = #target
+            local trimLen = maxLen - targetLen - 1
+            local startTrim = math.max(targetIndex - trimLen, 1)
+            local endTrim = math.min(targetIndex + targetLen + trimLen - 1, #str)
+
+            -- Trim the string
+            str = string.sub(str, startTrim, endTrim)
+            -- Add ellipsis if necessary
+            if startTrim > 1 then
+                str = "..." .. string.sub(str, startTrim)
+            end
+            if endTrim < #str then
+                str = string.sub(str, 1, -4) .. "..."
+            end
+        else
+            -- Trim the string without keeping target visible
+            str = string.sub(str, 1, maxLen - 3) .. "..."
+        end
+    end
+
+    return str
+end
+
+-- dummy
