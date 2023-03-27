@@ -1,4 +1,4 @@
-function trimToWork(str, target, maxLen)
+function trimToWord(str, target, maxLen)
     -- Check if string is longer than max length
     if #str > maxLen then
         -- Check if target string is in the string
@@ -41,6 +41,18 @@ local fileListBuf = nil
 local fileListWin = nil
 
 function replaceInProject()
+    local searchString, replaceString = getUserInputs()
+    local searchedFiles = vim.fn.system("find . -type f -exec grep -n -H -e '" .. searchString .. "' {} +")
+    replaceInProjectGeneric(searchString, replaceString, searchedFiles)
+end
+
+function replaceInGit()
+    local searchString, replaceString = getUserInputs()
+    local searchedFiles = vim.fn.system("git ls-files | xargs grep -n -H -e '" .. searchString .. "'")
+    replaceInProjectGeneric(searchString, replaceString, searchedFiles)
+end
+
+function getUserInputs()
     searchString = vim.fn.input("Search: ")
 
     if searchString == "" then
@@ -53,16 +65,19 @@ function replaceInProject()
         return
     end
 
+    return searchString, replaceString
+end
+
+function replaceInProjectGeneric(searchString, replaceString, filesSearched)
     selectedOptions = {}
     optionPerLine = {}
 
-    local output = vim.fn.system("git ls-files | xargs grep -n -H -e '" .. searchString .. "'")
     local files = {}
-    for line in string.gmatch(output, "[^\r\n]+") do
+    for line in string.gmatch(filesSearched, "[^\r\n]+") do
         local file, line_number, match_text = string.match(line, "(.+):(%d+):(.+)")
         if file then
             match_text = match_text:gsub("^%s+", "")
-            match_text = trimToWork(match_text, searchString, width - 10)
+            match_text = trimToWord(match_text, searchString, width - 10)
             table.insert(files, file .. ":" .. line_number .. ":" .. match_text)
         end
     end
@@ -197,4 +212,4 @@ function submitChanges()
     vim.cmd("edit!")
 end
 
--- Dummy
+-- rummy
