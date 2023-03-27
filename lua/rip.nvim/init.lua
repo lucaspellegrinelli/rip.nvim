@@ -5,6 +5,7 @@ local files = {}
 for line in string.gmatch(output, "[^\r\n]+") do
     local file, line_number, match_text = string.match(line, "(.+):(%d+):(.+)")
     if file then
+        match_text = match_text:gsub("^%s+", "")
         table.insert(files, file .. ":" .. line_number .. ":" .. match_text)
     end
 end
@@ -35,11 +36,10 @@ for _, entry in ipairs(files) do
         if not tree[file] then
             tree[file] = {}
         end
-        tree[file][line_number .. ":" .. match_text] = ""
+        tree[file][line_number .. ": " .. match_text] = ""
     end
 end
 
--- Add the entries to the buffer recursively
 -- Add the entries to the buffer recursively
 local function add_entries(node, indent)
     for file, lines in pairs(node) do
