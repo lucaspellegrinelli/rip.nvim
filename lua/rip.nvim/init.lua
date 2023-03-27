@@ -28,84 +28,102 @@ function trimToWork(str, target, maxLen)
     return str
 end
 
-local originalWindow = vim.api.nvim_get_current_win()
-
 local height = 15
 local width = 100
 
-local searchString = vim.fn.input("Search: ")
-local replaceString = vim.fn.input("Replace: ")
+local searchString = "";
+local replaceString = "";
 
 local selectedOptions = {}
 local optionPerLine = {}
 
-local output = vim.fn.system("git ls-files | xargs grep -n -H -e '" .. searchString .. "'")
-local files = {}
-for line in string.gmatch(output, "[^\r\n]+") do
-    local file, line_number, match_text = string.match(line, "(.+):(%d+):(.+)")
-    if file then
-        match_text = match_text:gsub("^%s+", "")
-        match_text = trimToWork(match_text, searchString, width - 10)
-        table.insert(files, file .. ":" .. line_number .. ":" .. match_text)
+local fileListBuf = nil
+local fileListWin = nil
+
+function replaceInProject()
+    searchString = vim.fn.input("Search: ")
+
+    if searchString == "" then
+        return
     end
-end
 
--- Create the window
-local fileListOpts = {
-    style = "minimal",
-    relative = "editor",
-    width = width,
-    height = height,
-    row = math.floor((vim.o.lines - height) / 2),
-    col = math.floor((vim.o.columns - width) / 2),
-    bufpos = { 0, 0 },
-    focusable = false,
-    border = "rounded",
-}
+    replaceString = vim.fn.input("Replace: ")
 
-local fileListBuf = vim.api.nvim_create_buf(false, true)
-local fileListWin = vim.api.nvim_open_win(fileListBuf, true, fileListOpts)
+    if replaceString == "" then
+        return
+    end
 
-local listEntries = {}
-for _, entry in ipairs(files) do
-    local file, line_number, match_text = string.match(entry, "(.+):(%d+):(.+)")
-    if file and line_number and match_text then
-        if not listEntries[file] then
-            listEntries[file] = {}
+    selectedOptions = {}
+    optionPerLine = {}
+
+    local output = vim.fn.system("git ls-files | xargs grep -n -H -e '" .. searchString .. "'")
+    local files = {}
+    for line in string.gmatch(output, "[^\r\n]+") do
+        local file, line_number, match_text = string.match(line, "(.+):(%d+):(.+)")
+        if file then
+            match_text = match_text:gsub("^%s+", "")
+            match_text = trimToWork(match_text, searchString, width - 10)
+            table.insert(files, file .. ":" .. line_number .. ":" .. match_text)
         end
-
-        listEntries[file][line_number .. ": " .. match_text] = ""
-    end
-end
-
-local currentLine = 1
-for file, lines in pairs(listEntries) do
-    vim.api.nvim_buf_set_lines(fileListBuf, -1, -1, false, { file })
-    currentLine = currentLine + 1
-
-    local sortedEntries = {}
-    for matchEntry, _ in pairs(lines) do
-        table.insert(sortedEntries, matchEntry)
     end
 
-    table.sort(sortedEntries, function(a, b)
-        local a_line_number = tonumber(string.match(a, "(%d+):"))
-        local b_line_number = tonumber(string.match(b, "(%d+):"))
-        return a_line_number < b_line_number
-    end)
+    -- Create the window
+    local fileListOpts = {
+        style = "minimal",
+        relative = "editor",
+        width = width,
+        height = height,
+        row = math.floor((vim.o.lines - height) / 2),
+        col = math.floor((vim.o.columns - width) / 2),
+        bufpos = { 0, 0 },
+        focusable = false,
+        border = "rounded",
+    }
 
-    for i, matchEntry in ipairs(sortedEntries) do
-        local line = "  " .. matchEntry
-        vim.api.nvim_buf_set_lines(fileListBuf, -1, -1, false, { line })
-        local matchStart, matchEnd = string.find(line, searchString)
-        vim.api.nvim_buf_add_highlight(fileListBuf, -1, "Search", i + 1, matchStart - 1, matchEnd)
+    fileListBuf = vim.api.nvim_create_buf(false, true)
+    fileListWin = vim.api.nvim_open_win(fileListBuf, true, fileListOpts)
+
+    local listEntries = {}
+    for _, entry in ipairs(files) do
+        local file, line_number, match_text = string.match(entry, "(.+):(%d+):(.+)")
+        if file and line_number and match_text then
+            if not listEntries[file] then
+                listEntries[file] = {}
+            end
+
+            listEntries[file][line_number .. ": " .. match_text] = ""
+        end
+    end
+
+    local currentLine = 1
+    for file, lines in pairs(listEntries) do
+        vim.api.nvim_buf_set_lines(fileListBuf, -1, -1, false, { file })
         currentLine = currentLine + 1
 
-        optionPerLine[currentLine] = { file = file, line_number = tonumber(string.match(matchEntry, "(%d+):")) }
-    end
-end
+        local sortedEntries = {}
+        for matchEntry, _ in pairs(lines) do
+            table.insert(sortedEntries, matchEntry)
+        end
 
-vim.api.nvim_buf_set_option(fileListBuf, "modifiable", false)
+        table.sort(sortedEntries, function(a, b)
+            local a_line_number = tonumber(string.match(a, "(%d+):"))
+            local b_line_number = tonumber(string.match(b, "(%d+):"))
+            return a_line_number < b_line_number
+        end)
+
+        for i, matchEntry in ipairs(sortedEntries) do
+            local line = "  " .. matchEntry
+            vim.api.nvim_buf_set_lines(fileListBuf, -1, -1, false, { line })
+            local matchStart, matchEnd = string.find(line, searchString)
+            vim.api.nvim_buf_add_highlight(fileListBuf, -1, "Search", i + 1, matchStart - 1, matchEnd)
+            currentLine = currentLine + 1
+
+            optionPerLine[currentLine] = { file = file, line_number = tonumber(string.match(matchEntry, "(%d+):")) }
+        end
+    end
+    vim.api.nvim_buf_set_option(fileListBuf, "modifiable", false)
+    vim.api.nvim_buf_set_keymap(fileListBuf, "n", "<CR>", ":lua toggleMark()<CR>", { noremap = true, silent = true })
+end
 
 function toggleMark()
     vim.api.nvim_buf_set_option(fileListBuf, "modifiable", true)
@@ -155,8 +173,13 @@ end
 function submitChanges()
     -- print(vim.inspect(selectedOptions))
     -- print(vim.inspect(optionPerLine))
-    -- Loop each selected options and get info from allOptions
 
+    -- Close the window
+    vim.api.nvim_win_close(fileListWin, true)
+
+    vim.cmd("write!")
+
+    -- Loop each selected options and get info from allOptions
     for k, v in pairs(selectedOptions) do
         local file = optionPerLine[k].file
         local line_number = optionPerLine[k].line_number
@@ -167,22 +190,11 @@ function submitChanges()
         local line = fileContents[line_number]
         local newLine = line:gsub(searchString, replaceString)
         fileContents[line_number] = newLine
-
-        -- Write the file contents back to the file but don't save the file
         vim.fn.writefile(fileContents, file)
     end
-
-    -- Close the window
-    vim.api.nvim_win_close(fileListWin, true)
-
-    -- Set current window to the original window
-    vim.api.nvim_set_current_win(originalWindow)
 
     -- Refresh the buffers
     vim.cmd("edit!")
 end
 
--- Override enter key to mark selected file name with an asterisk
-vim.api.nvim_buf_set_keymap(fileListBuf, "n", "<CR>", ":lua toggleMark()<CR>", { noremap = true, silent = true })
-
--- dummy
+-- Dummy
