@@ -1,4 +1,6 @@
-# Replace In Project - NeoVim Plugin
+# rip.nvim
+
+Just replace all your problems away
 
 ## What do I do?
 
