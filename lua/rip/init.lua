@@ -178,8 +178,6 @@ function redraw_window()
                 end
             end
 
-            -- local line = get_marked_line(match_entry, selected_options[current_line])
-
             local line = "  " .. match_entry
             if selected_options[current_line] then
                 line = "*" .. string.sub(line, 2)
@@ -256,11 +254,7 @@ function toggle_mark_all_in_file()
         end
 
         for i = start_line, end_line - 1 do
-            if was_marked then
-                selected_options[i] = nil
-            else
-                selected_options[i] = true
-            end
+            set_selected_state(i, not was_marked)
 
             local tmp_line_text = vim.fn.getline(i)
             local new_line_text = get_marked_line(tmp_line_text, not was_marked)
@@ -288,12 +282,7 @@ function toggle_mark()
     if is_line_number(line_text) then
         local was_marked = selected_options[line] ~= nil
         local updated_line = get_marked_line(line_text, not was_marked)
-        if was_marked then
-            selected_options[line] = nil
-        else
-            selected_options[line] = true
-        end
-
+        set_selected_state(line, not was_marked)
         set_highlighted_text(file_list_buf, line, updated_line, search_string)
     else
         toggle_mark_all_in_file()
@@ -355,6 +344,14 @@ function get_marked_line(line, marked)
         return "*" .. string.sub(line, 2)
     else
         return " " .. string.sub(line, 2)
+    end
+end
+
+function set_selected_state(line, selected)
+    if selected then
+        selected_options[line] = true
+    else
+        selected_options[line] = nil
     end
 end
 
