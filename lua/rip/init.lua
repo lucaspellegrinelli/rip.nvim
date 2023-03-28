@@ -183,11 +183,7 @@ function redraw_window()
                 line = "*" .. string.sub(line, 2)
             end
 
-            vim.api.nvim_buf_set_lines(file_list_buf, current_line, current_line, false, { line })
-            local match_start, match_end = string.find(line, search_string)
-            if match_start then
-                vim.api.nvim_buf_add_highlight(file_list_buf, 0, 'RedText', current_line - 1, match_start - 1, match_end)
-            end
+            set_highlighted_text(file_list_buf, current_line, line, search_string)
 
             current_line = current_line + 1
             option_per_line[current_line] = { file = file, line_number = line_number }
@@ -241,7 +237,6 @@ function toggle_mark_all_in_file()
 
     local is_line_number = string.sub(line_text, 1, 1) == "*" or string.sub(line_text, 1, 1) == " "
     if not is_line_number then
-        local file = line_text
         local start_line = line + 1
         local end_line = start_line
         while vim.fn.getline(end_line) and string.sub(vim.fn.getline(end_line), 1, 1) == " " do
@@ -249,14 +244,23 @@ function toggle_mark_all_in_file()
         end
 
         for i = start_line, end_line - 1 do
-            if string.sub(line_text, 1, 1) == " " then
+            local tmp_line_text = vim.fn.getline(i)
+            if string.sub(tmp_line_text, 1, 1) == " " then
                 selected_options[i] = true
-                vim.fn.setline(i, "*" .. string.sub(line_text, 2))
+                set_highlighted_text(file_list_buf, i, "*" .. string.sub(tmp_line_text, 2), search_string)
             end
         end
     end
 
     vim.api.nvim_buf_set_option(file_list_buf, "modifiable", false)
+end
+
+function set_highlighted_text(buffer, line, text, highlighted_text)
+    vim.api.nvim_buf_set_lines(buffer, line - 1, line, false, { text })
+    local match_start, match_end = string.find(text, highlighted_text)
+    if match_start then
+        vim.api.nvim_buf_add_highlight(buffer, 0, 'RedText', line - 1, match_start - 1, match_end)
+    end
 end
 
 function toggle_mark()
@@ -277,11 +281,7 @@ function toggle_mark()
             updated_line = mark .. string.sub(line_text, 2)
         end
 
-        vim.fn.setline(line, updated_line)
-        local match_start, match_end = string.find(updated_line, search_string)
-        if match_start then
-            vim.api.nvim_buf_add_highlight(file_list_buf, 0, 'RedText', line - 1, match_start - 1, match_end)
-        end
+        set_highlighted_text(file_list_buf, line, updated_line, search_string)
     else
         toggle_mark_all_in_file()
     end
