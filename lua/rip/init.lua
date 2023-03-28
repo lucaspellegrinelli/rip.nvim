@@ -1,3 +1,7 @@
+vim.cmd('highlight RedText guifg=#ff0000')
+vim.cmd('highlight GreenText guifg=#00ff00')
+vim.cmd('highlight BlueText guifg=#0000ff')
+
 local height = 15
 local width = 100
 
@@ -168,23 +172,23 @@ function redraw_window()
             local line = "  " .. match_entry
             local line_number = tonumber(string.match(match_entry, "(%d+):"))
 
-            local was_selected = false
             for _, v in pairs(old_selected_options) do
                 if v.file == file and v.line_number == line_number then
-                    was_selected = true
                     selected_options[current_line] = true
                     break
                 end
             end
 
-            if was_selected then
-                vim.api.nvim_buf_set_lines(file_list_buf, -1, -1, false, { "*" .. string.sub(line, 2) })
-            else
-                vim.api.nvim_buf_set_lines(file_list_buf, -1, -1, false, { line })
+            if selected_options[current_line] then
+                line = "*" .. string.sub(line, 2)
             end
 
-            -- local matchStart, matchEnd = string.find(line, search_string)
-            -- vim.api.nvim_buf_add_highlight(file_list_buf, -2, "Search", i + 1, matchStart - 1, matchEnd)
+            vim.api.nvim_buf_set_lines(file_list_buf, current_line, current_line, false, { line })
+            local match_start, match_end = string.find(line, search_string)
+            if match_start then
+                vim.api.nvim_buf_add_highlight(file_list_buf, 0, 'RedText', current_line - 1, match_start - 1, match_end)
+            end
+
             current_line = current_line + 1
             option_per_line[current_line] = { file = file, line_number = line_number }
         end
@@ -205,16 +209,26 @@ function collapse_file()
     local line_text = vim.fn.getline(line)
 
     local is_line_number = string.sub(line_text, 1, 1) == "*" or string.sub(line_text, 1, 1) == " "
-    if not is_line_number then
-        local file = line_text
-        if collapsed_files[file] then
-            collapsed_files[file] = nil
-        else
-            collapsed_files[file] = true
-        end
 
-        redraw_window()
+    local file_name = nil
+    if is_line_number then
+        local option = option_per_line[line + 1]
+        if option then
+            file_name = option.file
+        end
+    else
+        file_name = line_text
     end
+
+    if file_name then
+        if collapsed_files[file_name] then
+            collapsed_files[file_name] = nil
+        else
+            collapsed_files[file_name] = true
+        end
+    end
+
+    redraw_window()
 
     vim.api.nvim_buf_set_option(file_list_buf, "modifiable", false)
 end
@@ -255,34 +269,21 @@ function toggle_mark()
     local is_line_number = string.sub(line_text, 1, 1) == mark or string.sub(line_text, 1, 1) == " "
     if is_line_number then
         -- If the line is a line number, toggle the mark on the line number
+        local updated_line = " " .. string.sub(line_text, 2)
         if string.sub(line_text, 1, 1) == mark then
             selected_options[line] = nil
-            vim.fn.setline(line, " " .. string.sub(line_text, 2))
         else
             selected_options[line] = true
-            vim.fn.setline(line, mark .. string.sub(line_text, 2))
-        end
-    else
-        -- If the line is a file name, toggle the mark on all line numbers
-        local start_line = line + 1
-        local end_line = start_line
-        while end_line <= #vim.api.nvim_buf_get_lines(file_list_buf, 0, -1, false) do
-            if not string.match(line_text, "%d+:") then
-                break
-            end
-            end_line = end_line + 1
+            updated_line = mark .. string.sub(line_text, 2)
         end
 
-        for i = start_line, end_line - 1 do
-            local is_marked = string.sub(line_text, 1, 1) == mark
-            if is_marked then
-                selected_options[i] = nil
-                vim.fn.setline(i, " " .. string.sub(line_text, 2))
-            else
-                selected_options[i] = true
-                vim.fn.setline(i, mark .. string.sub(line_text, 2))
-            end
+        vim.fn.setline(line, updated_line)
+        local match_start, match_end = string.find(updated_line, search_string)
+        if match_start then
+            vim.api.nvim_buf_add_highlight(file_list_buf, 0, 'RedText', line - 1, match_start - 1, match_end)
         end
+    else
+        toggle_mark_all_in_file()
     end
 
     vim.api.nvim_buf_set_option(file_list_buf, "modifiable", false)
@@ -346,6 +347,8 @@ function setup(config)
         keybinds = config.keybinds
     end
 end
+
+replace_in_project()
 
 return {
     setup = setup,
