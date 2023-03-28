@@ -9,6 +9,8 @@ local search_string = "";
 local replace_string = "";
 
 local selected_options = {}
+local selected_options_count = 0
+
 local option_per_line = {}
 local collapsed_files = {}
 local marked_files = {}
@@ -74,6 +76,7 @@ end
 function reset_search()
     files = {}
     selected_options = {}
+    selected_options_count = 0
     option_per_line = {}
     collapsed_files = {}
 end
@@ -124,14 +127,8 @@ end
 function redraw_window()
     local cursor_pos = vim.api.nvim_win_get_cursor(file_list_win)
 
-    local old_selected_options = {}
-    for k, _ in pairs(selected_options) do
-        old_selected_options[k] = option_per_line[k + 1]
-    end
-
     -- Clear the buffers
     vim.api.nvim_buf_set_lines(file_list_buf, 0, -1, false, {})
-    selected_options = {}
     option_per_line = {}
 
     local drew_first_line = false
@@ -171,15 +168,10 @@ function redraw_window()
 
         for _, match_entry in ipairs(sorted_entries) do
             local line_number = tonumber(string.match(match_entry, "(%d+):"))
-            for _, v in pairs(old_selected_options) do
-                if v.file == file and v.line_number == line_number then
-                    selected_options[current_line] = true
-                    break
-                end
-            end
+            local is_selected = get_selected_state(file, line_number)
 
             local line = "  " .. match_entry
-            if selected_options[current_line] then
+            if is_selected then
                 line = "*" .. string.sub(line, 2)
             end
 
@@ -254,7 +246,8 @@ function toggle_mark_all_in_file()
         end
 
         for i = start_line, end_line - 1 do
-            set_selected_state(i, not was_marked)
+            local option = option_per_line[i + 1]
+            set_selected_state(option.file, option.line_number, not was_marked)
 
             local tmp_line_text = vim.fn.getline(i)
             local new_line_text = get_marked_line(tmp_line_text, not was_marked)
@@ -280,9 +273,10 @@ function toggle_mark()
     local line_text = vim.fn.getline(line)
 
     if is_line_number(line_text) then
-        local was_marked = selected_options[line] ~= nil
+        local was_marked = is_line_marked(line_text)
         local updated_line = get_marked_line(line_text, not was_marked)
-        set_selected_state(line, not was_marked)
+        local option = option_per_line[line + 1]
+        set_selected_state(option.file, option.line_number, not was_marked)
         set_highlighted_text(file_list_buf, line, updated_line, search_string)
     else
         toggle_mark_all_in_file()
@@ -295,7 +289,7 @@ function submit_changes()
     close_window()
     vim.cmd("write!")
 
-    for k, v in pairs(selected_options) do
+    for k, _ in pairs(selected_options) do
         local file = option_per_line[k + 1].file
         local line_number = option_per_line[k + 1].line_number
 
@@ -339,6 +333,10 @@ function is_line_number(line)
     return string.sub(line, 1, 1) == "*" or string.sub(line, 1, 1) == " "
 end
 
+function is_line_marked(line)
+    return string.sub(line, 1, 1) == "*"
+end
+
 function get_marked_line(line, marked)
     if marked then
         return "*" .. string.sub(line, 2)
@@ -347,11 +345,34 @@ function get_marked_line(line, marked)
     end
 end
 
-function set_selected_state(line, selected)
-    if selected then
-        selected_options[line] = true
+function get_selected_state(file, line_number)
+    for _, v in pairs(selected_options) do
+        if v.file == file and v.line_number == line_number then
+            return true
+        end
+    end
+
+    return false
+end
+
+function set_selected_state(file, line_number, selected)
+    local already_selected_idx = nil
+    for k, v in pairs(selected_options) do
+        if v.file == file and v.line_number == line_number then
+            already_selected_idx = k
+            break
+        end
+    end
+
+    if already_selected_idx then
+        if not selected then
+            selected_options[already_selected_idx] = nil
+        end
     else
-        selected_options[line] = nil
+        if selected then
+            selected_options_count = selected_options_count + 1
+            selected_options[selected_options_count] = { file = file, line_number = line_number }
+        end
     end
 end
 
