@@ -13,6 +13,12 @@ local fileListWin = nil
 
 local files = {}
 
+local keybinds = {
+    toggleMark = "x",
+    toggleCollapse = "c",
+    markAllInFile = "a",
+}
+
 function replaceInProject()
     getUserInputs()
     local searchedFiles = vim.fn.system("find . -type f -exec grep -n -H -e '" .. searchString .. "' {} +")
@@ -54,6 +60,10 @@ function replaceInProjectGeneric(filesSearched)
 
     if #files == 0 then
         vim.api.nvim_buf_set_lines(fileListBuf, 0, -1, false, { "No matches found" })
+    else
+        vim.api.nvim_buf_set_keymap(fileListBuf, "n", keybinds["toggleMark"], ":lua toggleMark()<CR>", { noremap = true, silent = true })
+        vim.api.nvim_buf_set_keymap(fileListBuf, "n", keybinds["toggleCollapse"], ":lua collapseFile()<CR>", { noremap = true, silent = true })
+        vim.api.nvim_buf_set_keymap(fileListBuf, "n", keybinds["markAllInFile"], ":lua markAllInFile()<CR>", { noremap = true, silent = true })
     end
 
     -- Close the window when the user presses <Esc> or <C-c>
@@ -317,12 +327,15 @@ function trimToWord(str, target, maxLen)
     return str
 end
 
+function setup(config)
+    -- Override default keybinds
+    if config.keybinds then
+        keybinds = config.keybinds
+    end
+end
+
 return {
+    setup = setup,
     replaceInProject = replaceInProject,
     replaceInGit = replaceInGit,
-    closeWindow = closeWindow,
-    toggleMark = toggleMark,
-    markAllInFile = markAllInFile,
-    collapseFile = collapseFile,
-    submitChanges = submitChanges,
 }
