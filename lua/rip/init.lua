@@ -122,14 +122,7 @@ function build_window()
     file_list_win = vim.api.nvim_open_win(file_list_buf, true, file_list_opts)
 end
 
-function redraw_window()
-    local cursor_pos = vim.api.nvim_win_get_cursor(file_list_win)
-
-    -- Clear the buffers
-    vim.api.nvim_buf_set_lines(file_list_buf, 0, -1, false, {})
-    option_per_line = {}
-
-    local drew_first_line = false
+function get_entries_from_files(files)
     local list_entries = {}
     for _, entry in ipairs(files) do
         local file, line_number, match_text = string.match(entry, "(.+):(%d+):(.+)")
@@ -142,6 +135,18 @@ function redraw_window()
         end
     end
 
+    return list_entries
+end
+
+function redraw_window()
+    local cursor_pos = vim.api.nvim_win_get_cursor(file_list_win)
+
+    -- Clear the buffers
+    vim.api.nvim_buf_set_lines(file_list_buf, 0, -1, false, {})
+    option_per_line = {}
+
+    local list_entries = get_entries_from_files(files)
+    local drew_first_line = false
     local current_line = 1
     for file, lines in pairs(list_entries) do
         local line_to_draw = (drew_first_line and -1 or 0)
@@ -287,9 +292,9 @@ function submit_changes()
     close_window()
     vim.cmd("write!")
 
-    for k, _ in pairs(selected_options) do
-        local file = option_per_line[k + 1].file
-        local line_number = option_per_line[k + 1].line_number
+    for _, v in pairs(selected_options) do
+        local file = v.file
+        local line_number = v.line_number
 
         local file_contents = vim.fn.readfile(file)
         local line = file_contents[line_number]
