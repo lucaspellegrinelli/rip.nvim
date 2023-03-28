@@ -170,9 +170,7 @@ function redraw_window()
         end)
 
         for _, match_entry in ipairs(sorted_entries) do
-            local line = "  " .. match_entry
             local line_number = tonumber(string.match(match_entry, "(%d+):"))
-
             for _, v in pairs(old_selected_options) do
                 if v.file == file and v.line_number == line_number then
                     selected_options[current_line] = true
@@ -180,10 +178,12 @@ function redraw_window()
                 end
             end
 
-            -- if selected_options[current_line] then
-            --     line = "*" .. string.sub(line, 2)
-            -- end
-            line = get_marked_line(line, selected_options[current_line])
+            -- local line = get_marked_line(match_entry, selected_options[current_line])
+
+            local line = "  " .. match_entry
+            if selected_options[current_line] then
+                line = "*" .. string.sub(line, 2)
+            end
 
             set_highlighted_text(file_list_buf, current_line, line, search_string)
 
@@ -256,7 +256,11 @@ function toggle_mark_all_in_file()
         end
 
         for i = start_line, end_line - 1 do
-            selected_options[i] = true
+            if was_marked then
+                selected_options[i] = nil
+            else
+                selected_options[i] = true
+            end
 
             local tmp_line_text = vim.fn.getline(i)
             local new_line_text = get_marked_line(tmp_line_text, not was_marked)
@@ -302,13 +306,10 @@ function submit_changes()
     close_window()
     vim.cmd("write!")
 
-    -- Loop each selected options and get info from allOptions
     for k, v in pairs(selected_options) do
         local file = option_per_line[k + 1].file
         local line_number = option_per_line[k + 1].line_number
 
-        -- Replace all instances of the search string with the replace string
-        -- in the file at the line number
         local file_contents = vim.fn.readfile(file)
         local line = file_contents[line_number]
         local new_line = line:gsub(search_string, replace_string)
@@ -316,34 +317,29 @@ function submit_changes()
         vim.fn.writefile(file_contents, file)
     end
 
-    -- Refresh the buffers
     vim.cmd("edit!")
 end
 
-function trim_to_word(str, target, maxLen)
-    -- Check if string is longer than max length
-    if #str > maxLen then
-        -- Check if target string is in the string
+function trim_to_word(str, target, max_len)
+    if #str > max_len then
         local target_index = string.find(str, target)
         if target_index then
-            -- Calculate how much to trim before and after the target string
             local target_len = #target
-            local trim_len = maxLen - target_len - 1
+            local trim_len = max_len - target_len - 1
             local start_trim = math.max(target_index - trim_len, 1)
             local end_trim = math.min(target_index + target_len + trim_len - 1, #str)
 
-            -- Trim the string
             str = string.sub(str, start_trim, end_trim)
-            -- Add ellipsis if necessary
+
             if start_trim > 1 then
                 str = "..." .. string.sub(str, start_trim)
             end
+
             if end_trim < #str then
                 str = string.sub(str, 1, -4) .. "..."
             end
         else
-            -- Trim the string without keeping target visible
-            str = string.sub(str, 1, maxLen - 3) .. "..."
+            str = string.sub(str, 1, max_len - 3) .. "..."
         end
     end
 
@@ -363,7 +359,6 @@ function get_marked_line(line, marked)
 end
 
 function setup(config)
-    -- Override default keybinds
     if config.keybinds then
         keybinds = config.keybinds
     end
