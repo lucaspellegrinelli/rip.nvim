@@ -1,7 +1,7 @@
 vim.cmd('highlight HighlightedSearchColor guifg=#e9b565')
 
-local height = 15
-local width = 100
+local width = math.floor(vim.o.columns * 0.75)
+local height = math.floor(vim.o.lines * 0.5)
 
 local search_string = "";
 local replace_string = "";
