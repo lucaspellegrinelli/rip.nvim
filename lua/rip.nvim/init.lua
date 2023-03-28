@@ -13,6 +13,9 @@ local fileListWin = nil
 
 local files = {}
 
+-- Open the window with <leader>rp
+vim.api.nvim_set_keymap("n", "<leader>rp", ":lua replaceInProject()<CR>", { noremap = true, silent = true })
+
 function replaceInProject()
     getUserInputs()
     local searchedFiles = vim.fn.system("find . -type f -exec grep -n -H -e '" .. searchString .. "' {} +")
@@ -62,9 +65,13 @@ function replaceInProjectGeneric(filesSearched)
 
     vim.api.nvim_buf_set_option(fileListBuf, "modifiable", false)
 
+
     -- Close the window when the user presses <Esc> or <C-c>
     vim.api.nvim_buf_set_keymap(fileListBuf, "n", "<Esc>", ":lua closeWindow()<CR>", { noremap = true, silent = true })
     vim.api.nvim_buf_set_keymap(fileListBuf, "n", "<C-c>", ":lua closeWindow()<CR>", { noremap = true, silent = true })
+
+    -- Submit the window when the user presses <CR>
+    vim.api.nvim_buf_set_keymap(fileListBuf, "n", "<CR>", ":lua submitWindow()<CR>", { noremap = true, silent = true })
 end
 
 function buildWindow()
@@ -84,6 +91,8 @@ function buildWindow()
 end
 
 function redrawWindow()
+    local cursorPos = vim.api.nvim_win_get_cursor(fileListWin)
+
     local oldSelectedOptions = {}
     for k, _ in pairs(selectedOptions) do
         oldSelectedOptions[k] = optionPerLine[k + 1]
@@ -148,13 +157,15 @@ function redrawWindow()
                 vim.api.nvim_buf_set_lines(fileListBuf, -1, -1, false, { line })
             end
 
-            local matchStart, matchEnd = string.find(line, searchString)
-            vim.api.nvim_buf_add_highlight(fileListBuf, -1, "Search", i + 1, matchStart - 1, matchEnd)
+            -- local matchStart, matchEnd = string.find(line, searchString)
+            -- vim.api.nvim_buf_add_highlight(fileListBuf, -2, "Search", i + 1, matchStart - 1, matchEnd)
             currentLine = currentLine + 1
             optionPerLine[currentLine] = { file = file, line_number = lineNumber }
         end
         ::continue::
     end
+
+    vim.api.nvim_win_set_cursor(fileListWin, cursorPos)
 end
 
 function closeWindow()
