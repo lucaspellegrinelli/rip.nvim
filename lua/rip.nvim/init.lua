@@ -71,7 +71,7 @@ function replaceInProjectGeneric(filesSearched)
     vim.api.nvim_buf_set_keymap(fileListBuf, "n", "<C-c>", ":lua closeWindow()<CR>", { noremap = true, silent = true })
 
     -- Submit the window when the user presses <CR>
-    vim.api.nvim_buf_set_keymap(fileListBuf, "n", "<CR>", ":lua submitWindow()<CR>", { noremap = true, silent = true })
+    vim.api.nvim_buf_set_keymap(fileListBuf, "n", "<CR>", ":lua submitChanges()<CR>", { noremap = true, silent = true })
 end
 
 function buildWindow()
@@ -244,8 +244,8 @@ function submitChanges()
 
     -- Loop each selected options and get info from allOptions
     for k, v in pairs(selectedOptions) do
-        local file = optionPerLine[k].file
-        local line_number = optionPerLine[k].line_number
+        local file = optionPerLine[k + 1].file
+        local line_number = optionPerLine[k + 1].line_number
 
         -- Replace all instances of the search string with the replace string
         -- in the file at the line number
@@ -290,4 +290,4 @@ function trimToWord(str, target, maxLen)
     return str
 end
 
--- Dummy
+-- dummy
