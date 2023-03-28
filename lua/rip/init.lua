@@ -297,7 +297,11 @@ end
 
 function submit_changes()
     close_window()
-    vim.cmd("write!")
+
+    local current_file = vim.fn.expand("%:p")
+    if current_file ~= "" then
+        vim.cmd("write")
+    end
 
     for _, v in pairs(selected_options) do
         local file = v.file
@@ -310,7 +314,9 @@ function submit_changes()
         vim.fn.writefile(file_contents, file)
     end
 
-    vim.cmd("edit!")
+    if current_file ~= "" then
+        vim.cmd("edit!")
+    end
 end
 
 function trim_to_word(str, target, max_len)
