@@ -15,8 +15,10 @@ local files = {}
 
 local keybinds = {
     toggle_mark = "x",
-    toggleCollapse = "c",
-    mark_all_in_file = "a",
+    toggle_collapse = "c",
+    toggle_mark_all_in_file = "a",
+    confirm_replace = "<CR>",
+    cancel_replace = "<Esc>",
 }
 
 function replace_in_project()
@@ -46,6 +48,8 @@ function get_user_inputs()
 end
 
 function replace_in_project_generic(files_searched)
+    reset_search()
+
     for line in string.gmatch(files_searched, "[^\r\n]+") do
         local file, line_number, match_text = string.match(line, "(.+):(%d+):(.+)")
         if file then
@@ -57,23 +61,35 @@ function replace_in_project_generic(files_searched)
 
     build_window()
     redraw_window()
-
-    if #files == 0 then
-        vim.api.nvim_buf_set_lines(file_list_buf, 0, -1, false, { "No matches found" })
-    else
-        vim.api.nvim_buf_set_keymap(file_list_buf, "n", keybinds["toggle_mark"], ":lua toggle_mark()<CR>", { noremap = true, silent = true })
-        vim.api.nvim_buf_set_keymap(file_list_buf, "n", keybinds["toggleCollapse"], ":lua collapse_file()<CR>", { noremap = true, silent = true })
-        vim.api.nvim_buf_set_keymap(file_list_buf, "n", keybinds["mark_all_in_file"], ":lua mark_all_in_file()<CR>", { noremap = true, silent = true })
-    end
-
-    -- Close the window when the user presses <Esc> or <C-c>
-    vim.api.nvim_buf_set_keymap(file_list_buf, "n", "<Esc>", ":lua close_window()<CR>", { noremap = true, silent = true })
-    vim.api.nvim_buf_set_keymap(file_list_buf, "n", "<C-c>", ":lua close_window()<CR>", { noremap = true, silent = true })
-
-    -- Submit the window when the user presses <CR>
-    vim.api.nvim_buf_set_keymap(file_list_buf, "n", "<CR>", ":lua submit_window()<CR>", { noremap = true, silent = true })
+    set_keybinds()
 
     vim.api.nvim_buf_set_option(file_list_buf, "modifiable", false)
+end
+
+function reset_search()
+    files = {}
+    selected_options = {}
+    option_per_line = {}
+    collapsed_files = {}
+end
+
+function set_keybinds()
+    if #files == 0 then
+        vim.api.nvim_buf_set_lines(file_list_buf, 0, -1, false, { "No matches found for '" .. search_string .. "'" })
+    else
+        vim.api.nvim_buf_set_keymap(file_list_buf, "n", keybinds["toggle_mark"], ":lua toggle_mark()<CR>",
+            { noremap = true, silent = true })
+        vim.api.nvim_buf_set_keymap(file_list_buf, "n", keybinds["toggle_collapse"], ":lua collapse_file()<CR>",
+            { noremap = true, silent = true })
+        vim.api.nvim_buf_set_keymap(file_list_buf, "n", keybinds["toggle_mark_all_in_file"],
+            ":lua toggle_mark_all_in_file()<CR>",
+            { noremap = true, silent = true })
+    end
+
+    vim.api.nvim_buf_set_keymap(file_list_buf, "n", keybinds["confirm_replace"], ":lua submit_window()<CR>",
+        { noremap = true, silent = true })
+    vim.api.nvim_buf_set_keymap(file_list_buf, "n", keybinds["cancel_replace"], ":lua close_window()<CR>",
+        { noremap = true, silent = true })
 end
 
 function submit_window()
@@ -203,7 +219,7 @@ function collapse_file()
     vim.api.nvim_buf_set_option(file_list_buf, "modifiable", false)
 end
 
-function mark_all_in_file()
+function toggle_mark_all_in_file()
     vim.api.nvim_buf_set_option(file_list_buf, "modifiable", true)
 
     local line = vim.fn.line('.')

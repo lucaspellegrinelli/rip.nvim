@@ -34,7 +34,7 @@ rip.setup({
     keybinds = {
         toggle_mark = "y",
         toggle_collapse = "l",
-        mark_all_in_file = "p",
+        toggle_mark_all_in_file = "p",
     },
 })
 ```
