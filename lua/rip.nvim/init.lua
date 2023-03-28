@@ -84,6 +84,11 @@ function buildWindow()
 end
 
 function redrawWindow()
+    local oldSelectedOptions = {}
+    for k, _ in pairs(selectedOptions) do
+        oldSelectedOptions[k] = optionPerLine[k + 1]
+    end
+
     -- Clear the buffers
     vim.api.nvim_buf_set_lines(fileListBuf, 0, -1, false, {})
     selectedOptions = {}
@@ -126,11 +131,27 @@ function redrawWindow()
 
         for i, matchEntry in ipairs(sortedEntries) do
             local line = "  " .. matchEntry
-            vim.api.nvim_buf_set_lines(fileListBuf, -1, -1, false, { line })
+            local lineNumber = tonumber(string.match(matchEntry, "(%d+):"))
+
+            local wasSelected = false
+            for _, v in pairs(oldSelectedOptions) do
+                if v.file == file and v.line_number == lineNumber then
+                    wasSelected = true
+                    selectedOptions[currentLine] = true
+                    break
+                end
+            end
+
+            if wasSelected then
+                vim.api.nvim_buf_set_lines(fileListBuf, -1, -1, false, { "*" .. string.sub(line, 2) })
+            else
+                vim.api.nvim_buf_set_lines(fileListBuf, -1, -1, false, { line })
+            end
+
             local matchStart, matchEnd = string.find(line, searchString)
             vim.api.nvim_buf_add_highlight(fileListBuf, -1, "Search", i + 1, matchStart - 1, matchEnd)
             currentLine = currentLine + 1
-            optionPerLine[currentLine] = { file = file, line_number = tonumber(string.match(matchEntry, "(%d+):")) }
+            optionPerLine[currentLine] = { file = file, line_number = lineNumber }
         end
         ::continue::
     end
