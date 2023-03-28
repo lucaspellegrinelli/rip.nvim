@@ -1,4 +1,4 @@
-vim.cmd('highlight HighlightedSearchColor guifg=#ffff00')
+vim.cmd('highlight HighlightedSearchColor guifg=#e9b565')
 
 local height = 15
 local width = 100
@@ -7,8 +7,6 @@ local search_string = "";
 local replace_string = "";
 
 local selected_options = {}
-local selected_options_count = 0
-
 local option_per_line = {}
 local collapsed_files = {}
 local marked_files = {}
@@ -74,7 +72,6 @@ end
 function reset_search()
     files = {}
     selected_options = {}
-    selected_options_count = 0
     option_per_line = {}
     collapsed_files = {}
 end
@@ -146,9 +143,19 @@ function redraw_window()
     option_per_line = {}
 
     local list_entries = get_entries_from_files(files)
-    local drew_first_line = false
+    local sorted_file_names = {}
+    for k in pairs(list_entries) do
+        table.insert(sorted_file_names, k)
+    end
+
+    table.sort(sorted_file_names, function(a, b)
+        return a:lower() < b:lower()
+    end)
+
     local current_line = 1
-    for file, lines in pairs(list_entries) do
+    local drew_first_line = false
+    for _, file in ipairs(sorted_file_names) do
+        local lines = list_entries[file]
         local line_to_draw = (drew_first_line and -1 or 0)
         vim.api.nvim_buf_set_lines(file_list_buf, line_to_draw, -1, false, { file })
         current_line = current_line + 1
@@ -373,8 +380,7 @@ function set_selected_state(file, line_number, selected)
         end
     else
         if selected then
-            selected_options_count = selected_options_count + 1
-            selected_options[selected_options_count] = { file = file, line_number = line_number }
+            table.insert(selected_options, { file = file, line_number = line_number })
         end
     end
 end
