@@ -13,9 +13,6 @@ local fileListWin = nil
 
 local files = {}
 
--- Open the window with <leader>rp
-vim.api.nvim_set_keymap("n", "<leader>rp", ":lua replaceInProject()<CR>", { noremap = true, silent = true })
-
 function replaceInProject()
     getUserInputs()
     local searchedFiles = vim.fn.system("find . -type f -exec grep -n -H -e '" .. searchString .. "' {} +")
@@ -56,22 +53,25 @@ function replaceInProjectGeneric(filesSearched)
     redrawWindow()
 
     if #files == 0 then
-        vim.api.nvim_buf_set_lines(fileListBuf, -1, -1, false, { "No matches found" })
-    else
-        -- Bind pressing x to toggle the mark
-        vim.api.nvim_buf_set_keymap(fileListBuf, "n", "x", ":lua toggleMark()<CR>", { noremap = true, silent = true })
-        vim.api.nvim_buf_set_keymap(fileListBuf, "n", "l", ":lua collapseFile()<CR>", { noremap = true, silent = true })
+        vim.api.nvim_buf_set_lines(fileListBuf, 0, -1, false, { "No matches found" })
     end
-
-    vim.api.nvim_buf_set_option(fileListBuf, "modifiable", false)
-
 
     -- Close the window when the user presses <Esc> or <C-c>
     vim.api.nvim_buf_set_keymap(fileListBuf, "n", "<Esc>", ":lua closeWindow()<CR>", { noremap = true, silent = true })
     vim.api.nvim_buf_set_keymap(fileListBuf, "n", "<C-c>", ":lua closeWindow()<CR>", { noremap = true, silent = true })
 
     -- Submit the window when the user presses <CR>
-    vim.api.nvim_buf_set_keymap(fileListBuf, "n", "<CR>", ":lua submitChanges()<CR>", { noremap = true, silent = true })
+    vim.api.nvim_buf_set_keymap(fileListBuf, "n", "<CR>", ":lua submitWindow()<CR>", { noremap = true, silent = true })
+
+    vim.api.nvim_buf_set_option(fileListBuf, "modifiable", false)
+end
+
+function submitWindow()
+    if #files == 0 then
+        closeWindow()
+    else
+        submitChanges()
+    end
 end
 
 function buildWindow()
@@ -193,6 +193,33 @@ function collapseFile()
     vim.api.nvim_buf_set_option(fileListBuf, "modifiable", false)
 end
 
+function markAllInFile()
+    vim.api.nvim_buf_set_option(fileListBuf, "modifiable", true)
+
+    local line = vim.fn.line('.')
+    local line_text = vim.fn.getline(line)
+
+    local isLineNumber = string.sub(line_text, 1, 1) == "*" or string.sub(line_text, 1, 1) == " "
+    if not isLineNumber then
+        local file = line_text
+        local start_line = line + 1
+        local end_line = start_line
+        while vim.fn.getline(end_line) and string.sub(vim.fn.getline(end_line), 1, 1) == " " do
+            end_line = end_line + 1
+        end
+
+        for i = start_line, end_line - 1 do
+            local line_text = vim.fn.getline(i)
+            if string.sub(line_text, 1, 1) == " " then
+                selectedOptions[i] = true
+                vim.fn.setline(i, "*" .. string.sub(line_text, 2))
+            end
+        end
+    end
+
+    vim.api.nvim_buf_set_option(fileListBuf, "modifiable", false)
+end
+
 function toggleMark()
     vim.api.nvim_buf_set_option(fileListBuf, "modifiable", true)
 
@@ -290,4 +317,12 @@ function trimToWord(str, target, maxLen)
     return str
 end
 
--- dummy
+return {
+    replaceInProject = replaceInProject,
+    replaceInGit = replaceInGit,
+    closeWindow = closeWindow,
+    toggleMark = toggleMark,
+    markAllInFile = markAllInFile,
+    collapseFile = collapseFile,
+    submitChanges = submitChanges,
+}
