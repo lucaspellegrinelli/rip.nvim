@@ -1,6 +1,4 @@
-vim.cmd('highlight RedText guifg=#ff0000')
-vim.cmd('highlight GreenText guifg=#00ff00')
-vim.cmd('highlight BlueText guifg=#0000ff')
+vim.cmd('highlight HighlightedSearchColor guifg=#ffff00')
 
 local height = 15
 local width = 100
@@ -262,7 +260,7 @@ function set_highlighted_text(buffer, line, text, highlighted_text)
     vim.api.nvim_buf_set_lines(buffer, line - 1, line, false, { text })
     local match_start, match_end = string.find(text, highlighted_text)
     if match_start then
-        vim.api.nvim_buf_add_highlight(buffer, 0, 'RedText', line - 1, match_start - 1, match_end)
+        vim.api.nvim_buf_add_highlight(buffer, 0, 'HighlightedSearchColor', line - 1, match_start - 1, match_end)
     end
 end
 
