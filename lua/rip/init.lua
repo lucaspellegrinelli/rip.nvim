@@ -11,6 +11,7 @@ local replace_string = "";
 local selected_options = {}
 local option_per_line = {}
 local collapsed_files = {}
+local marked_files = {}
 
 local file_list_buf = nil
 local file_list_win = nil
@@ -168,7 +169,7 @@ function redraw_window()
             return a_line_number < b_line_number
         end)
 
-        for i, match_entry in ipairs(sorted_entries) do
+        for _, match_entry in ipairs(sorted_entries) do
             local line = "  " .. match_entry
             local line_number = tonumber(string.match(match_entry, "(%d+):"))
 
@@ -179,9 +180,10 @@ function redraw_window()
                 end
             end
 
-            if selected_options[current_line] then
-                line = "*" .. string.sub(line, 2)
-            end
+            -- if selected_options[current_line] then
+            --     line = "*" .. string.sub(line, 2)
+            -- end
+            line = get_marked_line(line, selected_options[current_line])
 
             set_highlighted_text(file_list_buf, current_line, line, search_string)
 
@@ -204,10 +206,8 @@ function collapse_file()
     local line = vim.fn.line('.')
     local line_text = vim.fn.getline(line)
 
-    local is_line_number = string.sub(line_text, 1, 1) == "*" or string.sub(line_text, 1, 1) == " "
-
     local file_name = nil
-    if is_line_number then
+    if is_line_number(line_text) then
         local option = option_per_line[line + 1]
         if option then
             file_name = option.file
@@ -235,20 +235,32 @@ function toggle_mark_all_in_file()
     local line = vim.fn.line('.')
     local line_text = vim.fn.getline(line)
 
-    local is_line_number = string.sub(line_text, 1, 1) == "*" or string.sub(line_text, 1, 1) == " "
-    if not is_line_number then
+    local was_marked = marked_files[line_text] ~= nil
+    if was_marked then
+        marked_files[line_text] = nil
+    else
+        marked_files[line_text] = true
+    end
+
+    if not is_line_number(line_text) then
         local start_line = line + 1
         local end_line = start_line
-        while vim.fn.getline(end_line) and string.sub(vim.fn.getline(end_line), 1, 1) == " " do
+
+        while vim.fn.getline(end_line) do
+            local current_end_line = vim.fn.getline(end_line)
+            if not is_line_number(current_end_line) then
+                break
+            end
+
             end_line = end_line + 1
         end
 
         for i = start_line, end_line - 1 do
+            selected_options[i] = true
+
             local tmp_line_text = vim.fn.getline(i)
-            if string.sub(tmp_line_text, 1, 1) == " " then
-                selected_options[i] = true
-                set_highlighted_text(file_list_buf, i, "*" .. string.sub(tmp_line_text, 2), search_string)
-            end
+            local new_line_text = get_marked_line(tmp_line_text, not was_marked)
+            set_highlighted_text(file_list_buf, i, new_line_text, search_string)
         end
     end
 
@@ -266,19 +278,16 @@ end
 function toggle_mark()
     vim.api.nvim_buf_set_option(file_list_buf, "modifiable", true)
 
-    local mark = "*"
     local line = vim.fn.line('.')
     local line_text = vim.fn.getline(line)
 
-    local is_line_number = string.sub(line_text, 1, 1) == mark or string.sub(line_text, 1, 1) == " "
-    if is_line_number then
-        -- If the line is a line number, toggle the mark on the line number
-        local updated_line = " " .. string.sub(line_text, 2)
-        if string.sub(line_text, 1, 1) == mark then
+    if is_line_number(line_text) then
+        local was_marked = selected_options[line] ~= nil
+        local updated_line = get_marked_line(line_text, not was_marked)
+        if was_marked then
             selected_options[line] = nil
         else
             selected_options[line] = true
-            updated_line = mark .. string.sub(line_text, 2)
         end
 
         set_highlighted_text(file_list_buf, line, updated_line, search_string)
@@ -341,14 +350,24 @@ function trim_to_word(str, target, maxLen)
     return str
 end
 
+function is_line_number(line)
+    return string.sub(line, 1, 1) == "*" or string.sub(line, 1, 1) == " "
+end
+
+function get_marked_line(line, marked)
+    if marked then
+        return "*" .. string.sub(line, 2)
+    else
+        return " " .. string.sub(line, 2)
+    end
+end
+
 function setup(config)
     -- Override default keybinds
     if config.keybinds then
         keybinds = config.keybinds
     end
 end
-
-replace_in_project()
 
 return {
     setup = setup,
