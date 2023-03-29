@@ -4,7 +4,15 @@ Just replace all your problems away
 
 ## What do I do?
 
-Replace a string with another in all files in a project (or just the git tracked files!)
+Sometimes we need to replace a string with another in all files in a project. This plugin aims to make this process easier by providing a nice UI to select occurences and choose which ones to replace and which to keep.
+
+<p align="center">
+    <img src="https://i.imgur.com/4wyFE48.gif" width="800">
+</p>
+
+<p align="center">
+    <em>Simple example of the plugin in action!</em>
+</p>
 
 ## How do you install me?
 
