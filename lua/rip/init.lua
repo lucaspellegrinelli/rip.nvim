@@ -124,6 +124,7 @@ function build_window()
 
     file_list_buf = vim.api.nvim_create_buf(false, true)
     file_list_win = vim.api.nvim_open_win(file_list_buf, true, file_list_opts)
+    vim.api.nvim_command("autocmd BufLeave <buffer> lua close_window()")
 end
 
 function get_entries_from_files(files)
@@ -205,6 +206,7 @@ end
 
 function close_window()
     vim.api.nvim_win_close(file_list_win, true)
+    vim.api.nvim_command("autocmd! BufLeave <buffer>")
 end
 
 function collapse_file()
