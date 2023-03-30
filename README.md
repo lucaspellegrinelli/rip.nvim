@@ -44,7 +44,7 @@ rip.setup({
     keybinds = {
         toggle_mark = "y",
         toggle_collapse = "l",
-        toggle_mark_all_in_file = "p",
+        toggle_mark_all = "p",
     },
 })
 ```
@@ -54,9 +54,9 @@ In the example above, we replaced some of the shortcuts the utility has (like re
 ```
 X. key_binding_key (default_value) - Description
 
-1. toggle_mark (x) - Selecting/Unselecting a specific occurence to be replaced
+1. toggle_mark (x) - Selecting/Unselecting a specific occurences or files to be replaced
 2. toggle_collapse (c) - Collapsing/Uncollapsing the occurences of a specific file
-3. toggle_mark_all_in_file (a) - Selecting/Unselecting all the occurences in a specific file
+3. toggle_mark_all (a) - Selecting/Unselecting all the occurences found in all files
 4. confirm_replace (<CR>) - Close the window and replacing all selected occurences
 5. cancel_replace (<Esc>) - Close the window and NOT replacing any occurences
 ```

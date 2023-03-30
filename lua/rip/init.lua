@@ -10,6 +10,7 @@ local selected_options = {}
 local option_per_line = {}
 local collapsed_files = {}
 local marked_files = {}
+local all_files_marked = false
 
 local file_list_buf = nil
 local file_list_win = nil
@@ -19,7 +20,7 @@ local files = {}
 local keybinds = {
     toggle_mark = "x",
     toggle_collapse = "c",
-    toggle_mark_all_in_file = "a",
+    toggle_mark_all = "a",
     confirm_replace = "<CR>",
     cancel_replace = "<Esc>",
 }
@@ -89,8 +90,8 @@ function set_keybinds()
             { noremap = true, silent = true })
         vim.api.nvim_buf_set_keymap(file_list_buf, "n", keybinds["toggle_collapse"], ":lua collapse_file()<CR>",
             { noremap = true, silent = true })
-        vim.api.nvim_buf_set_keymap(file_list_buf, "n", keybinds["toggle_mark_all_in_file"],
-            ":lua toggle_mark_all_in_file()<CR>",
+        vim.api.nvim_buf_set_keymap(file_list_buf, "n", keybinds["toggle_mark_all"],
+            ":lua toggle_mark_all()<CR>",
             { noremap = true, silent = true })
     end
 
@@ -270,6 +271,25 @@ function toggle_mark_all_in_file()
 
             local tmp_line_text = vim.fn.getline(i)
             local new_line_text = get_marked_line(tmp_line_text, not was_marked)
+            set_highlighted_text(file_list_buf, i, new_line_text, search_string)
+        end
+    end
+
+    vim.api.nvim_buf_set_option(file_list_buf, "modifiable", false)
+end
+
+function toggle_mark_all()
+    vim.api.nvim_buf_set_option(file_list_buf, "modifiable", true)
+
+    all_files_marked = not all_files_marked
+
+    for i = 1, vim.fn.line('$') do
+        local line_text = vim.fn.getline(i)
+        if is_line_number(line_text) then
+            local option = option_per_line[i + 1]
+            set_selected_state(option.file, option.line_number, all_files_marked)
+
+            local new_line_text = get_marked_line(line_text, all_files_marked)
             set_highlighted_text(file_list_buf, i, new_line_text, search_string)
         end
     end
