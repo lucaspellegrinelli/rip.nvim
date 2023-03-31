@@ -59,7 +59,9 @@ function get_user_inputs()
     replace_string = vim.fn.input("Replace: ")
 
     if replace_string == "" then
-        return false
+        -- Leaving the replace string empty is a valid input since the user might
+        -- want to delete the search string
+        return true
     end
 
     return true
