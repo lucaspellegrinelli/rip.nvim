@@ -26,13 +26,25 @@ local keybinds = {
 }
 
 function replace_in_project()
-    get_user_inputs()
+    local has_input = get_user_inputs()
+
+    if not has_input then
+        return
+        vim.cmd("echo ''")
+    end
+
     local searched_files = vim.fn.system("find . -type f -exec grep -n -H -e '" .. search_string .. "' {} +")
     replace_in_project_generic(searched_files)
 end
 
 function replace_in_git()
-    get_user_inputs()
+    local has_input = get_user_inputs()
+
+    if not has_input then
+        vim.cmd("echo ''")
+        return
+    end
+
     local searched_files = vim.fn.system("git ls-files | xargs grep -n -H -e '" .. search_string .. "'")
     replace_in_project_generic(searched_files)
 end
@@ -41,14 +53,18 @@ function get_user_inputs()
     search_string = vim.fn.input("Search: ")
 
     if search_string == "" then
-        return
+        return false
     end
 
     replace_string = vim.fn.input("Replace: ")
 
     if replace_string == "" then
-        return
+        -- Leaving the replace string empty is a valid input since the user might
+        -- want to delete the search string
+        return true
     end
+
+    return true
 end
 
 function replace_in_project_generic(files_searched)
