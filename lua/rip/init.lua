@@ -6,9 +6,8 @@ local M = {}
 
 function M.setup(config)
     config = config or {}
-
-    window.setup()
-	keybindings.setup(config.keybinds)
+    keybindings.setup(config.keybinds)
+    window.setup(config.window)
 end
 
 M.replace_in_project = search.replace_in_project
