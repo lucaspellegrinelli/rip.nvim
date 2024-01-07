@@ -27,8 +27,9 @@ return {
 
         vim.keymap.set("n", "<leader>rp", rip.replace_in_project, {})
         vim.keymap.set("n", "<leader>rg", rip.replace_in_git, {})
-    end,
-}```
+    end
+}
+```
 
 With this you can probably figure out how to install it with your chosen plugin manager.
 
