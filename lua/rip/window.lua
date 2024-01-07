@@ -120,6 +120,8 @@ function M.redraw_window()
 	end
 
 	keybindings.set_keybinds(M.state.buffer, #M.state.matched_files > 0)
+
+    cursor_pos[1] = math.min(cursor_pos[1], vim.fn.line("$"))
 	vim.api.nvim_win_set_cursor(M.state.window, cursor_pos)
 	vim.api.nvim_buf_set_option(M.state.buffer, "modifiable", true)
 end
@@ -149,16 +151,20 @@ function M.toggle_mark_all_in_file()
 	vim.api.nvim_buf_set_option(M.state.buffer, "modifiable", true)
 
 	local line = vim.fn.line(".")
-	local line_text = vim.fn.getline(line)
+	local file_name = vim.fn.getline(line)
 
-	local was_marked = M.state.marked_files[line_text] ~= nil
+    if M.state.collapsed_files[file_name] then
+        return
+    end
+
+	local was_marked = M.state.marked_files[file_name] ~= nil
 	if was_marked then
-		M.state.marked_files[line_text] = nil
+		M.state.marked_files[file_name] = nil
 	else
-		M.state.marked_files[line_text] = true
+		M.state.marked_files[file_name] = true
 	end
 
-	if not utils.is_line_number(line_text) then
+	if not utils.is_line_number(file_name) then
 		local start_line = line + 1
 		local end_line = start_line
 
@@ -243,9 +249,9 @@ function M.reset_state(new_state)
 		marked_files = {},
 	}
 
-    for k, v in pairs(new_state) do
-        M.state[k] = v
-    end
+	for k, v in pairs(new_state) do
+		M.state[k] = v
+	end
 end
 
 function M.set_matched_files(files)
