@@ -27,8 +27,9 @@ return {
 
         vim.keymap.set("n", "<leader>rp", rip.replace_in_project, {})
         vim.keymap.set("n", "<leader>rg", rip.replace_in_git, {})
-    end,
-}```
+    end
+}
+```
 
 With this you can probably figure out how to install it with your chosen plugin manager.
 
@@ -54,9 +55,9 @@ local rip = require("rip")
 
 rip.setup({
     keybinds = {
-        toggle_mark = "x", -- Selecting/Unselecting a specific occurences or files to be replaced
-        toggle_collapse = "c", -- Collapsing/Uncollapsing the occurences of a specific file
-        toggle_mark_all = "a", -- Selecting/Unselecting all the occurences found in all files
+        toggle_mark = "x", -- (Un)Selecting a specific occurences or files to be replaced
+        toggle_collapse = "c", -- (Un)Collapsing the occurences of a specific file
+        toggle_mark_all = "a", -- (Un)Selecting all the occurences found in all files
         confirm_replace = "<CR>", -- Close the window and replacing all selected occurences
         cancel_replace = "<Esc>", -- Close the window and NOT replacing any occurences
     },
