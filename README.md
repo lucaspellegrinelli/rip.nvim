@@ -16,47 +16,52 @@ Sometimes we need to replace a string with another in all files in a project. Th
 
 ## How do you install me?
 
-Using `Packer` it is as simple as adding the following line to your Packer configuration file
+Using `Lazy` it is as simple as adding the following to your configuration
 
-```use("lucaspellegrinelli/rip.nvim")```
+```lua
+return {
+    "lucaspellegrinelli/rip.nvim",
+    config = function()
+        local rip = require("rip")
+        rip.setup({}) -- Required
+
+        vim.keymap.set("n", "<leader>rp", rip.replace_in_project, {})
+        vim.keymap.set("n", "<leader>rg", rip.replace_in_git, {})
+    end,
+}```
 
 With this you can probably figure out how to install it with your chosen plugin manager.
 
 ## How do you configure me?
 
-You can add the following lines to a lua file in your configuration to specify the keybinds to open the utility
+### Keybinds for starting the plugin
+
+To specify how to start the replacing process, you can edit the `keymaps` like so
 
 ```lua
-local rip = require("rip")
-
-vim.keymap.set('n', '<leader>rp', rip.replace_in_project, {})
-vim.keymap.set('n', '<leader>rg', rip.replace_in_git, {})
+vim.keymap.set('n', '<leader>rp', require("rip").replace_in_project, {})
+vim.keymap.set('n', '<leader>rg', require("rip").replace_in_git, {})
 ```
 
 The `replace_in_project` function replaces the target string in all files of your project while the `replace_in_git` function replaces the target string in all git tracked files in your project
 
-Along with defining the keybindings for opening the utility, you can also configure the shortcuts inside the utility like
+### Setup configurations
+
+For editing other configurations you can pass a `config` table to the `setup` function. These are the default values:
 
 ```lua
 local rip = require("rip")
 
 rip.setup({
     keybinds = {
-        toggle_mark = "y",
-        toggle_collapse = "l",
-        toggle_mark_all = "p",
+        toggle_mark = "x", -- Selecting/Unselecting a specific occurences or files to be replaced
+        toggle_collapse = "c", -- Collapsing/Uncollapsing the occurences of a specific file
+        toggle_mark_all = "a", -- Selecting/Unselecting all the occurences found in all files
+        confirm_replace = "<CR>", -- Close the window and replacing all selected occurences
+        cancel_replace = "<Esc>", -- Close the window and NOT replacing any occurences
     },
+    window = {
+        highlight_color = "#e9b565", -- Color of the matched string in the popup
+    }
 })
-```
-
-In the example above, we replaced some of the shortcuts the utility has (like replacing the toggle marked file from `x` to `y`). The possible actions to configure are:
-
-```
-X. key_binding_key (default_value) - Description
-
-1. toggle_mark (x) - Selecting/Unselecting a specific occurences or files to be replaced
-2. toggle_collapse (c) - Collapsing/Uncollapsing the occurences of a specific file
-3. toggle_mark_all (a) - Selecting/Unselecting all the occurences found in all files
-4. confirm_replace (<CR>) - Close the window and replacing all selected occurences
-5. cancel_replace (<Esc>) - Close the window and NOT replacing any occurences
 ```
